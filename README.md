@@ -10,11 +10,15 @@ Java 21 et Maven 3.9.6 ou plus récent :
 mvn -B verify
 ```
 
-Copiez `nar/target/nifi-jev-nar-0.1.0.nar` dans le répertoire `extensions` de NiFi, puis chargez ou redémarrez NiFi selon votre configuration. Ajoutez le processeur `RouteWithJev` au flux.
+Copiez `nar/target/nifi-jev-nar-0.1.1.nar` dans le répertoire `extensions` de NiFi, puis chargez ou redémarrez NiFi selon votre configuration. Ajoutez le processeur `RouteWithJev` au flux.
 
 Réglez `API Key` comme propriété sensible, `Endpoint` à `https://api.typesafe.ai/v1/systemone`, `Model` à une version fixée telle que `jev-1.13.0`, et `Condition` à une question comme « Ce message décrit-il une panne qui nécessite une intervention humaine ? ». `Confidence Threshold` vaut par exemple `0.8` : `yes` pour p ≥ 0,8, `no` pour p ≤ 0,2, `review` entre les deux. Configurez également les limites d'entrée, de délai et d'appels.
 
 Le processeur ajoute `jev.probability`, `jev.model` et `jev.state.sha256` au FlowFile évalué. Il ne stocke ni clé ni texte dans ces attributs. Les descriptions des propriétés et des relations sont fournies en français, anglais et espagnol dans NiFi.
+
+## Exemple de flux
+
+[Exemple d'acheminement d'incidents](examples/incident-routing.md) : un petit jeu de cas synthétiques montre les quatre relations, avec une file de revue humaine et un circuit d'erreur distincts. Les probabilités sont fictives ; l'exemple ne lance aucun appel réseau.
 
 ## Limites
 
