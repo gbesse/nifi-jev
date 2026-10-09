@@ -32,3 +32,7 @@ The processor adds `jev.probability`, `jev.model`, and `jev.state.sha256` to eva
 MIT licensed. Independent community integration, unaffiliated with Apache NiFi or TypeSafe AI.
 
 [Français](README.md) · [Español](README.es.md)
+
+## Adoption check
+
+[Try a concrete case and check its limits](examples/adoption-check.md).
