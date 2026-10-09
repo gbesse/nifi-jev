@@ -32,3 +32,7 @@ Le processeur ajoute `jev.probability`, `jev.model` et `jev.state.sha256` au Flo
 Licence MIT. Intégration communautaire indépendante, sans affiliation avec Apache NiFi ou TypeSafe AI.
 
 [English](README.en.md) · [Español](README.es.md)
+
+## Contrôle d’adoption · Adoption check · Comprobación de adopción
+
+[Français : essayer un cas concret](examples/adoption-check.md) · [English: try a concrete case](examples/adoption-check.md) · [Español: pruebe un caso concreto](examples/adoption-check.md).

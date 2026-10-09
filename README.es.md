@@ -32,3 +32,7 @@ El procesador añade `jev.probability`, `jev.model` y `jev.state.sha256` a los F
 Licencia MIT. Integración comunitaria independiente, sin afiliación con Apache NiFi ni TypeSafe AI.
 
 [Français](README.md) · [English](README.en.md)
+
+## Comprobación de adopción
+
+[Pruebe un caso concreto y compruebe sus límites](examples/adoption-check.md).
