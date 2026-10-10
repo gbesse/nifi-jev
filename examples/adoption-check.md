@@ -40,3 +40,15 @@ FR : adaptez une copie de la fixture locale à cette situation, puis vérifiez l
 EN: adapt a copy of the local fixture to this situation, then check the behavior described above. Values are illustrative, not measured Jev output.
 
 ES: adapte una copia de la fixture local a esta situación y compruebe el comportamiento descrito arriba. Los valores son ilustrativos, no resultados Jev medidos.
+
+## Second cas · Second case · Segundo caso
+
+```text
+maximum_calls=100; calls_used=100; next_flowfile=1
+```
+
+**FR :** Quand le budget d’appels est épuisé, le FlowFile suivant doit rejoindre `review`, pas `yes`. Réservez un chemin opérationnel à cette file.
+
+**EN:** Once the call budget is exhausted, the next FlowFile should go to `review`, not `yes`. Give that queue an operational path.
+
+**ES:** Cuando se agota el presupuesto de llamadas, el siguiente FlowFile debe ir a `review`, no a `yes`. Dé a esa cola una ruta operativa.
