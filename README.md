@@ -1,5 +1,11 @@
 # RouteWithJev pour Apache NiFi
 
+## Attributs d’acheminement propres à chaque passage
+
+Depuis v0.1.3, chaque FlowFile reçoit `jev.route` (`yes`, `no`, `review` ou `failure`). À chaque passage, les attributs appartenant à ce processeur sont retirés avant le nouveau contrôle : `jev.probability`, `jev.model`, `jev.state.sha256`, `jev.reason`, `jev.error` et `jev.route`. Un ancien `yes` ne peut donc plus laisser une probabilité trompeuse lorsque le nouveau passage échoue, atteint son budget ou refuse une entrée vide/trop grande. Les autres attributs, y compris `jev.custom`, restent inchangés.
+
+Un routage `yes`/`no` conserve la nouvelle probabilité, le modèle et l’empreinte ; la revue pour incertitude ajoute `jev.reason: uncertain`. Les refus avant inférence ont leur nouveau motif et aucune ancienne probabilité. Une erreur distante porte `jev.error: remote_failure`. `jev.route` décrit la relation de sortie actuelle ; ce reçu n’établit ni la justesse sémantique de la décision ni une livraison après NiFi. Les tests utilisent NiFi TestRunner et un serveur HTTP local synthétique, sans appel TypeSafe réel.
+
 Processeur NiFi 2.12 qui achemine un FlowFile texte selon une question sémantique oui/non posée à TypeSafe Jev. Quatre relations : `yes`, `no`, `review`, `failure`. Les résultats proches de 0,5 vont vers `review`, tout comme les entrées vides, trop grandes ou dépassant le budget. Les erreurs API vont vers `failure`.
 
 ## Construire et installer
@@ -10,7 +16,7 @@ Java 21 et Maven 3.9.6 ou plus récent :
 mvn -B verify
 ```
 
-Copiez `nar/target/nifi-jev-nar-0.1.2.nar` dans le répertoire `extensions` de NiFi, puis chargez ou redémarrez NiFi selon votre configuration. Ajoutez le processeur `RouteWithJev` au flux.
+Copiez `nar/target/nifi-jev-nar-0.1.3.nar` dans le répertoire `extensions` de NiFi, puis chargez ou redémarrez NiFi selon votre configuration. Ajoutez le processeur `RouteWithJev` au flux.
 
 Réglez `API Key` comme propriété sensible, `Endpoint` à `https://api.typesafe.ai/v1/systemone`, `Model` à une version fixée telle que `jev-1.13.0`, et `Condition` à une question comme « Ce message décrit-il une panne qui nécessite une intervention humaine ? ». `Confidence Threshold` vaut par exemple `0.8` : `yes` pour p ≥ 0,8, `no` pour p ≤ 0,2, `review` entre les deux. Configurez également les limites d'entrée, de délai et d'appels.
 
