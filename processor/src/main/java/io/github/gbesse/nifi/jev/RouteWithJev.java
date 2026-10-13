@@ -12,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -60,6 +59,13 @@ public final class RouteWithJev extends AbstractProcessor {
   public static final Relationship NO = relationship("no", "Condition likely false / Condition probablement fausse / Condición probablemente falsa");
   public static final Relationship REVIEW = relationship("review", "Uncertain or oversized input / Entrée incertaine ou trop volumineuse / Entrada incierta o demasiado grande");
   public static final Relationship FAILURE = relationship("failure", "API or configuration failure / Échec API ou configuration / Error de API o configuración");
+
+  private static final Set<String> OWNED_ATTRIBUTES = Set.of(
+      "jev.probability", "jev.model", "jev.state.sha256", "jev.reason", "jev.error", "jev.route");
+
+  private static void transfer(ProcessSession session, FlowFile file, Relationship route) {
+    session.transfer(session.putAttribute(file, "jev.route", route.getName()), route);
+  }
 
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final HttpClient HTTP = HttpClient.newBuilder()
@@ -112,40 +118,41 @@ public final class RouteWithJev extends AbstractProcessor {
   public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
     FlowFile file = session.get();
     if (file == null) return;
+    file = session.removeAllAttributes(file, OWNED_ATTRIBUTES);
     Settings config = settings;
     if (config == null) {
-      session.transfer(session.putAttribute(file, "jev.error", "not_scheduled"), FAILURE);
+      transfer(session, session.putAttribute(file, "jev.error", "not_scheduled"), FAILURE);
       return;
     }
     if (file.getSize() > config.maxBytes()) {
-      session.transfer(session.putAttribute(file, "jev.reason", "oversized"), REVIEW);
+      transfer(session, session.putAttribute(file, "jev.reason", "oversized"), REVIEW);
       return;
     }
     byte[][] holder = new byte[1][];
     try {
       session.read(file, stream -> holder[0] = stream.readNBytes(config.maxBytes() + 1));
       if (holder[0].length > config.maxBytes()) {
-        session.transfer(session.putAttribute(file, "jev.reason", "oversized"), REVIEW);
+        transfer(session, session.putAttribute(file, "jev.reason", "oversized"), REVIEW);
         return;
       }
       String value = new String(holder[0], StandardCharsets.UTF_8);
       if (value.isBlank()) {
-        session.transfer(session.putAttribute(file, "jev.reason", "empty"), REVIEW);
+        transfer(session, session.putAttribute(file, "jev.reason", "empty"), REVIEW);
         return;
       }
       if (calls.incrementAndGet() > config.maxCalls()) {
-        session.transfer(session.putAttribute(file, "jev.reason", "budget"), REVIEW);
+        transfer(session, session.putAttribute(file, "jev.reason", "budget"), REVIEW);
         return;
       }
       double probability = evaluate(config, value);
       file = session.putAttribute(file, "jev.probability", Double.toString(probability));
       file = session.putAttribute(file, "jev.model", config.model());
       file = session.putAttribute(file, "jev.state.sha256", sha256(holder[0]));
-      if (probability >= config.threshold()) session.transfer(file, YES);
-      else if (probability <= 1 - config.threshold()) session.transfer(file, NO);
-      else session.transfer(session.putAttribute(file, "jev.reason", "uncertain"), REVIEW);
+      if (probability >= config.threshold()) transfer(session, file, YES);
+      else if (probability <= 1 - config.threshold()) transfer(session, file, NO);
+      else transfer(session, session.putAttribute(file, "jev.reason", "uncertain"), REVIEW);
     } catch (Exception error) {
-      session.transfer(session.putAttribute(file, "jev.error", "remote_failure"), FAILURE);
+      transfer(session, session.putAttribute(file, "jev.error", "remote_failure"), FAILURE);
     }
   }
 
