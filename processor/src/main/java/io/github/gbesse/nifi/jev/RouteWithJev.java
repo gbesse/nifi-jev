@@ -9,6 +9,11 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.CharacterCodingException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -135,7 +140,14 @@ public final class RouteWithJev extends AbstractProcessor {
         transfer(session, session.putAttribute(file, "jev.reason", "oversized"), REVIEW);
         return;
       }
-      String value = new String(holder[0], StandardCharsets.UTF_8);
+      String value;
+      try {
+        value = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(holder[0])).toString();
+      } catch (CharacterCodingException invalidText) {
+        transfer(session, session.putAttribute(file, "jev.reason", "invalid_utf8"), REVIEW);
+        return;
+      }
       if (value.isBlank()) {
         transfer(session, session.putAttribute(file, "jev.reason", "empty"), REVIEW);
         return;
@@ -169,7 +181,7 @@ public final class RouteWithJev extends AbstractProcessor {
         .header("Content-Type", "application/json")
         .header("Authorization", "Bearer " + settings.key())
         .POST(HttpRequest.BodyPublishers.ofString(payload.toString(), StandardCharsets.UTF_8)).build();
-    HttpResponse<byte[]> response = HTTP.send(request, HttpResponse.BodyHandlers.ofByteArray());
+    HttpResponse<byte[]> response = HTTP.send(request, boundedBodyHandler());
     if (response.statusCode() != 200 || response.body().length > 100000) throw new IOException("Jev response failed");
     JsonNode answer = JSON.readTree(response.body()).path("answers").path("decision");
     JsonNode noul = answer.path("noul");
@@ -177,6 +189,31 @@ public final class RouteWithJev extends AbstractProcessor {
     double probability = noul.doubleValue();
     if (!Double.isFinite(probability) || probability < 0 || probability > 1) throw new IOException("Invalid Jev probability");
     return probability;
+  }
+
+  private static HttpResponse.BodyHandler<byte[]> boundedBodyHandler() {
+    return ignored -> new HttpResponse.BodySubscriber<>() {
+      private final HttpResponse.BodySubscriber<byte[]> delegate = HttpResponse.BodySubscribers.ofByteArray();
+      private Flow.Subscription subscription;
+      private long received;
+      private boolean stopped;
+      @Override public CompletionStage<byte[]> getBody() { return delegate.getBody(); }
+      @Override public void onSubscribe(Flow.Subscription value) {
+        subscription = value;
+        delegate.onSubscribe(value);
+      }
+      @Override public void onNext(List<ByteBuffer> buffers) {
+        if (stopped) return;
+        for (ByteBuffer buffer : buffers) received += buffer.remaining();
+        if (received > 100000) {
+          stopped = true;
+          subscription.cancel();
+          delegate.onError(new IOException("Response exceeds the byte limit"));
+        } else delegate.onNext(buffers);
+      }
+      @Override public void onError(Throwable error) { if (!stopped) delegate.onError(error); }
+      @Override public void onComplete() { if (!stopped) delegate.onComplete(); }
+    };
   }
 
   private static String sha256(byte[] bytes) {

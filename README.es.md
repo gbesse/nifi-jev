@@ -42,3 +42,7 @@ Licencia MIT. Integración comunitaria independiente, sin afiliación con Apache
 ## Comprobación de adopción
 
 [Pruebe un caso concreto y compruebe sus límites](examples/adoption-check.md).
+
+## Texto y transporte limitados
+
+Bytes UTF-8 incorrectos pasan a `review` con `jev.reason=invalid_utf8`, sin llamar al proveedor ni sustituir caracteres silenciosamente. El hash de texto válido describe así los bytes realmente decodificados. Respuestas HTTP limitadas a 100 000 bytes durante la recepción, antes de acumular todo y analizarlo; un exceso pasa a `failure` con `remote_failure`. Se siguen borrando atributos de decisiones anteriores. Las regresiones usan NiFi TestRunner y servidor local; no acceden a NiFi de producción ni cuentas Jev reales.

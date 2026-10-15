@@ -42,3 +42,7 @@ MIT licensed. Independent community integration, unaffiliated with Apache NiFi o
 ## Adoption check
 
 [Try a concrete case and check its limits](examples/adoption-check.md).
+
+## Bounded text and transport
+
+Malformed UTF-8 bytes now route to `review` with `jev.reason=invalid_utf8`, without a provider call or silent character replacement. Valid text hashes therefore describe the actual decoded bytes. HTTP response bodies are capped at 100,000 bytes while receiving, before full accumulation and parsing; overflow routes to `failure` with `remote_failure`. Old verdict attributes remain cleared. Regressions use NiFi TestRunner and a local server; no production NiFi or live Jev account is accessed.

@@ -120,4 +120,35 @@ class RouteReceiptTest {
       assertEquals(1, calls.get());
     } finally { server.stop(0); }
   }
+  @Test
+  void invalidUtf8GoesToReviewWithoutCallingProvider() throws Exception {
+    AtomicInteger calls = new AtomicInteger();
+    HttpServer server = server("{}", 200, calls);
+    try {
+      TestRunner runner = runner(server, 10);
+      runner.enqueue(new byte[] {(byte) 0xc3, 0x28}, STALE);
+      runner.run(1);
+      runner.assertTransferCount(RouteWithJev.REVIEW, 1);
+      var file = runner.getFlowFilesForRelationship(RouteWithJev.REVIEW).get(0);
+      assertEquals("invalid_utf8", file.getAttribute("jev.reason"));
+      assertNull(file.getAttribute("jev.probability"));
+      assertEquals(0, calls.get());
+    } finally { server.stop(0); }
+  }
+
+  @Test
+  void oversizedResponseFailsWithoutRetainingOldVerdict() throws Exception {
+    AtomicInteger calls = new AtomicInteger();
+    HttpServer server = server("x".repeat(100001), 200, calls);
+    try {
+      TestRunner runner = runner(server, 10);
+      runner.enqueue("synthetic text".getBytes(StandardCharsets.UTF_8), STALE);
+      runner.run(1);
+      runner.assertTransferCount(RouteWithJev.FAILURE, 1);
+      var file = runner.getFlowFilesForRelationship(RouteWithJev.FAILURE).get(0);
+      assertEquals("remote_failure", file.getAttribute("jev.error"));
+      assertNull(file.getAttribute("jev.probability"));
+      assertEquals(1, calls.get());
+    } finally { server.stop(0); }
+  }
 }
