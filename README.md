@@ -42,3 +42,7 @@ Licence MIT. Intégration communautaire indépendante, sans affiliation avec Apa
 ## Contrôle d’adoption · Adoption check · Comprobación de adopción
 
 [Français : essayer un cas concret](examples/adoption-check.md) · [English: try a concrete case](examples/adoption-check.md) · [Español: pruebe un caso concreto](examples/adoption-check.md).
+
+## Texte et transport bornés
+
+Les octets UTF-8 mal formés sont désormais routés vers `review` avec `jev.reason=invalid_utf8`, sans appel fournisseur ni remplacement silencieux des caractères. Le hash d’un texte valide correspond donc aux octets réellement décodés. Le corps de réponse HTTP est limité à 100 000 octets pendant sa réception, avant accumulation complète et parsing ; un dépassement va vers `failure` avec `remote_failure`. Les attributs d’un verdict ancien restent effacés. Les régressions utilisent NiFi TestRunner et un serveur local ; aucun NiFi de production ni compte Jev réel n’est interrogé.
