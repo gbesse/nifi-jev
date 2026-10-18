@@ -46,3 +46,10 @@ Licence MIT. Intégration communautaire indépendante, sans affiliation avec Apa
 ## Texte et transport bornés
 
 Les octets UTF-8 mal formés sont désormais routés vers `review` avec `jev.reason=invalid_utf8`, sans appel fournisseur ni remplacement silencieux des caractères. Le hash d’un texte valide correspond donc aux octets réellement décodés. Le corps de réponse HTTP est limité à 100 000 octets pendant sa réception, avant accumulation complète et parsing ; un dépassement va vers `failure` avec `remote_failure`. Les attributs d’un verdict ancien restent effacés. Les régressions utilisent NiFi TestRunner et un serveur local ; aucun NiFi de production ni compte Jev réel n’est interrogé.
+
+
+FR : `Timeout Milliseconds` couvre la réponse complète, corps inclus après les en-têtes. Un corps bloqué conduit à `failure` / `remote_failure` sans conserver d’ancien verdict. Le dépassement de délai ne garantit pas l’arrêt du calcul distant. Le nouveau test utilise HTTP local et le banc NiFi ; aucune mesure de cluster ou de modèle réel.
+
+EN: `Timeout Milliseconds` covers the complete response, including the body after headers. A stalled body routes to `failure` / `remote_failure` without retaining an old verdict. A deadline does not guarantee remote computation stopped. The new test uses local HTTP and the NiFi harness; no cluster or live-model measurement.
+
+ES: `Timeout Milliseconds` cubre la respuesta completa, incluido el cuerpo tras las cabeceras. Un cuerpo bloqueado se dirige a `failure` / `remote_failure` sin conservar un veredicto anterior. El plazo no garantiza la interrupción del cálculo remoto. La nueva prueba usa HTTP local y el banco NiFi; sin mediciones de clúster ni modelo real.

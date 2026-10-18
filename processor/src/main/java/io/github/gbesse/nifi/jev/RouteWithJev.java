@@ -13,6 +13,10 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.CharacterCodingException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Flow;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -56,7 +60,7 @@ public final class RouteWithJev extends AbstractProcessor {
   public static final PropertyDescriptor MAX_BYTES = property("Maximum Input Bytes",
       "Maximum FlowFile text bytes sent / Maximum d'octets de texte envoyés / Máximo de bytes de texto enviados", true, false);
   public static final PropertyDescriptor TIMEOUT = property("Timeout Milliseconds",
-      "HTTP timeout / Délai HTTP / Plazo HTTP", true, false);
+      "Complete response deadline / Délai de réponse complète / Plazo de respuesta completa", true, false);
   public static final PropertyDescriptor MAX_CALLS = property("Maximum Calls",
       "Maximum remote calls per processor scheduling period / Maximum d'appels par période / Máximo de llamadas por periodo", true, false);
 
@@ -181,7 +185,18 @@ public final class RouteWithJev extends AbstractProcessor {
         .header("Content-Type", "application/json")
         .header("Authorization", "Bearer " + settings.key())
         .POST(HttpRequest.BodyPublishers.ofString(payload.toString(), StandardCharsets.UTF_8)).build();
-    HttpResponse<byte[]> response = HTTP.send(request, boundedBodyHandler());
+    CompletableFuture<HttpResponse<byte[]>> pending = HTTP.sendAsync(request, boundedBodyHandler());
+    HttpResponse<byte[]> response;
+    try {
+      response = pending.get(settings.timeoutMs(), TimeUnit.MILLISECONDS);
+    } catch (ExecutionException | TimeoutException error) {
+      throw new IOException("Échec ou délai de réponse Jev / Jev response failed or timed out / Respuesta Jev fallida o fuera de plazo");
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      throw interrupted;
+    } finally {
+      if (!pending.isDone()) pending.cancel(true);
+    }
     if (response.statusCode() != 200 || response.body().length > 100000) throw new IOException("Jev response failed");
     JsonNode answer = JSON.readTree(response.body()).path("answers").path("decision");
     JsonNode noul = answer.path("noul");
