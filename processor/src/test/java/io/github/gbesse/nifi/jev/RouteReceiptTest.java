@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -150,5 +154,37 @@ class RouteReceiptTest {
       assertNull(file.getAttribute("jev.probability"));
       assertEquals(1, calls.get());
     } finally { server.stop(0); }
+  }
+
+  @Test
+  void stalledBodyRoutesToFailureWithinCompleteResponseDeadline() throws Exception {
+    CountDownLatch releaseBody = new CountDownLatch(1);
+    AtomicInteger calls = new AtomicInteger();
+    HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    server.createContext("/v1/systemone", exchange -> {
+      calls.incrementAndGet();
+      try {
+        exchange.sendResponseHeaders(200, 0);
+        exchange.getResponseBody().write('{');
+        exchange.getResponseBody().flush();
+        releaseBody.await(5, TimeUnit.SECONDS);
+      } catch (InterruptedException error) { Thread.currentThread().interrupt(); }
+      finally { exchange.close(); }
+    });
+    server.start();
+    try {
+      TestRunner runner = runner(server, 10);
+      runner.setProperty(RouteWithJev.TIMEOUT, "500");
+      runner.enqueue("synthetic content".getBytes(StandardCharsets.UTF_8), STALE);
+      assertTimeoutPreemptively(Duration.ofSeconds(3), () -> runner.run(1));
+      runner.assertTransferCount(RouteWithJev.FAILURE, 1);
+      var file = runner.getFlowFilesForRelationship(RouteWithJev.FAILURE).get(0);
+      assertEquals("remote_failure", file.getAttribute("jev.error"));
+      assertEquals("failure", file.getAttribute("jev.route"));
+      assertNull(file.getAttribute("jev.probability"));
+      assertNull(file.getAttribute("jev.model"));
+      assertNull(file.getAttribute("jev.state.sha256"));
+      assertEquals(1, calls.get());
+    } finally { releaseBody.countDown(); server.stop(0); }
   }
 }
