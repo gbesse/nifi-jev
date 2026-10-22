@@ -53,3 +53,11 @@ FR : `Timeout Milliseconds` couvre la réponse complète, corps inclus après le
 EN: `Timeout Milliseconds` covers the complete response, including the body after headers. A stalled body routes to `failure` / `remote_failure` without retaining an old verdict. A deadline does not guarantee remote computation stopped. The new test uses local HTTP and the NiFi harness; no cluster or live-model measurement.
 
 ES: `Timeout Milliseconds` cubre la respuesta completa, incluido el cuerpo tras las cabeceras. Un cuerpo bloqueado se dirige a `failure` / `remote_failure` sin conservar un veredicto anterior. El plazo no garantiza la interrupción del cálculo remoto. La nueva prueba usa HTTP local y el banco NiFi; sin mediciones de clúster ni modelo real.
+
+## Enveloppe / Envelope / Envoltura
+
+FR — Les réponses doivent annoncer le modèle attendu et exactement la question decision ; clés JSON dupliquées et documents JSON supplémentaires sont rejetés vers failure, sans probabilité exploitable.
+
+EN — Responses must name the expected model and exactly the decision question; duplicate JSON keys and trailing JSON documents route to failure without a usable probability.
+
+ES — Las respuestas deben indicar el modelo esperado y exactamente la pregunta decision; claves JSON duplicadas y documentos adicionales van a failure sin probabilidad utilizable.
