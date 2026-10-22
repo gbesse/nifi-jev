@@ -76,7 +76,7 @@ public final class RouteWithJev extends AbstractProcessor {
     session.transfer(session.putAttribute(file, "jev.route", route.getName()), route);
   }
 
-  private static final ObjectMapper JSON = new ObjectMapper();
+  private static final ObjectMapper JSON = new ObjectMapper().enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION).enable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
   private static final HttpClient HTTP = HttpClient.newBuilder()
       .connectTimeout(Duration.ofSeconds(3)).followRedirects(HttpClient.Redirect.NEVER).build();
   private final AtomicInteger calls = new AtomicInteger();
@@ -198,7 +198,9 @@ public final class RouteWithJev extends AbstractProcessor {
       if (!pending.isDone()) pending.cancel(true);
     }
     if (response.statusCode() != 200 || response.body().length > 100000) throw new IOException("Jev response failed");
-    JsonNode answer = JSON.readTree(response.body()).path("answers").path("decision");
+    JsonNode envelope = JSON.readTree(response.body());
+    if (envelope == null || !envelope.isObject() || !envelope.path("model").isTextual() || !settings.model().equals(envelope.path("model").textValue()) || !envelope.path("answers").isObject() || envelope.path("answers").size()!=1 || !envelope.path("answers").has("decision")) throw new IOException("Enveloppe Jev inattendue / Unexpected Jev envelope / Envoltura Jev inesperada");
+    JsonNode answer = envelope.path("answers").path("decision");
     JsonNode noul = answer.path("noul");
     if (!"noul".equals(answer.path("type").asText()) || !noul.isNumber()) throw new IOException("Invalid Jev answer");
     double probability = noul.doubleValue();

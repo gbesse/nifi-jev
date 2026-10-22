@@ -14,7 +14,7 @@ class RouteWithJevTest {
   void routesHighAndUncertainProbabilities() throws Exception {
     HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     server.createContext("/v1/systemone", exchange -> {
-      byte[] reply = "{\"answers\":{\"decision\":{\"type\":\"noul\",\"noul\":0.92}}}".getBytes(StandardCharsets.UTF_8);
+      byte[] reply = "{\"model\":\"jev-1.13.0\",\"answers\":{\"decision\":{\"type\":\"noul\",\"noul\":0.92}}}".getBytes(StandardCharsets.UTF_8);
       exchange.sendResponseHeaders(200, reply.length);
       try (var out = exchange.getResponseBody()) { out.write(reply); }
     });

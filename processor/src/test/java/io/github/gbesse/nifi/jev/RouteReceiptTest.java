@@ -54,7 +54,7 @@ class RouteReceiptTest {
   void successfulAndUncertainRoutesReplacePreviousReceipts() throws Exception {
     for (double probability : new double[] {0.92, 0.1, 0.5}) {
       AtomicInteger calls = new AtomicInteger();
-      String reply = "{\"answers\":{\"decision\":{\"type\":\"noul\",\"noul\":" + probability + "}}}";
+      String reply = "{\"model\":\"jev-1.13.0\",\"answers\":{\"decision\":{\"type\":\"noul\",\"noul\":" + probability + "}}}";
       HttpServer server = server(reply, 200, calls);
       try {
         TestRunner runner = runner(server, 10);
