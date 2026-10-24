@@ -102,14 +102,21 @@ public final class RouteWithJev extends AbstractProcessor {
   @Override public List<PropertyDescriptor> getSupportedPropertyDescriptors() { return properties; }
   @Override public Set<Relationship> getRelationships() { return relationships; }
 
+  static URI checkedEndpoint(String raw) {
+    try {
+      URI endpoint = URI.create(raw);
+      String host = endpoint.getHost();
+      boolean loopback = "http".equals(endpoint.getScheme()) && host != null && Set.of("localhost", "127.0.0.1").contains(host);
+      if (host == null || host.isBlank() || endpoint.getUserInfo() != null || endpoint.getRawFragment() != null || endpoint.getPort() == 0 || endpoint.getPort() > 65535 || (!"https".equals(endpoint.getScheme()) && !loopback)) throw new IllegalArgumentException();
+      return endpoint;
+    } catch (RuntimeException ignored) {
+      throw new IllegalArgumentException("Identité du point HTTP invalide / Invalid HTTP endpoint identity / Identidad del endpoint HTTP no válida");
+    }
+  }
+
   @OnScheduled
   public void scheduled(ProcessContext context) {
-    URI endpoint = URI.create(context.getProperty(ENDPOINT).getValue());
-    boolean loopback = "http".equals(endpoint.getScheme())
-        && Set.of("localhost", "127.0.0.1").contains(endpoint.getHost());
-    if (!"https".equals(endpoint.getScheme()) && !loopback) {
-      throw new IllegalArgumentException("Endpoint must use HTTPS or loopback HTTP");
-    }
+    URI endpoint = checkedEndpoint(context.getProperty(ENDPOINT).getValue());
     double threshold = Double.parseDouble(context.getProperty(CONFIDENCE).getValue());
     int maxBytes = Integer.parseInt(context.getProperty(MAX_BYTES).getValue());
     int timeoutMs = Integer.parseInt(context.getProperty(TIMEOUT).getValue());

@@ -61,3 +61,5 @@ FR — Les réponses doivent annoncer le modèle attendu et exactement la questi
 EN — Responses must name the expected model and exactly the decision question; duplicate JSON keys and trailing JSON documents route to failure without a usable probability.
 
 ES — Las respuestas deben indicar el modelo esperado y exactamente la pregunta decision; claves JSON duplicadas y documentos adicionales van a failure sin probabilidad utilizable.
+
+Le point HTTP doit avoir un hôte, sans identifiants intégrés ni fragment, avec port valide ; HTTPS ou HTTP local sont conservés. Les erreurs ne recopient pas la valeur fournie.
